@@ -12,7 +12,7 @@ namespace PickleAndHope.Controllers
     [Route("api/pickles")] // exposed at which endpoint
     [ApiController] // making it into http api
     public class PicklesController : ControllerBase // class is controller
-    {       
+    {
 
         PickleRepository _repository = new PickleRepository();
 
@@ -41,7 +41,7 @@ namespace PickleAndHope.Controllers
         [HttpGet]
         public IActionResult GetAllPickles()
         {
-        var allPickles = _repository.GetAll();
+            var allPickles = _repository.GetAll();
             return Ok(allPickles);
         }
 
@@ -53,6 +53,18 @@ namespace PickleAndHope.Controllers
             if (pickle == null)
             {
                 return NotFound("No pickle with that id can be found.");
+            }
+            return Ok(pickle);
+        }
+
+        // api/pickles/type/dill
+        [HttpGet("type/{type}")]
+        public IActionResult GetPickleByType(string type)
+        {
+            var pickle = _repository.GetByType(type);
+            if (pickle == null)
+            {
+                return NotFound("No pickle with that type exists.");
             }
             return Ok(pickle);
         }
