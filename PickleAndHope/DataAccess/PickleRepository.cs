@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Data.SqlClient;
-using System.Threading.Tasks;
+using Dapper;
 
 namespace PickleAndHope.DataAccess
 {
@@ -12,7 +12,7 @@ namespace PickleAndHope.DataAccess
     public class PickleRepository
     {
         // static means field should be shared by every instance of pickles controller for long erm data storage
-        static List<Pickle> _pickles = new List<Pickle>() { new Pickle {Id = 1, Type = "Bread and Butter", NumberInStock = 5 } };
+        //static List<Pickle> _pickles = new List<Pickle>() { new Pickle {Id = 1, Type = "Bread and Butter", NumberInStock = 5 } };
 
         const string ConnectionString = "Server=localhost;Database=PickleAndHope;Trusted_Connection=True;";       
         public Pickle Add(Pickle pickle)
@@ -25,31 +25,38 @@ namespace PickleAndHope.DataAccess
                         output inserted.*
                         values(@NumberInStock, @Price, @Size, @Type)";
 
-            using (var connection = new SqlConnection(ConnectionString))
+            //Dapper adds features to connection
+            using (var db = new SqlConnection(ConnectionString))
             {
-                connection.Open();
+                //can map to c# object in angle brackets. Match property name with name of columns
+                //can map property of pickle into parameter that we need because property names of pickle class match the parameters that we are trying to find
+                //also opens up connection for us
+                var result = db.QueryFirstOrDefault<Pickle>(sql, pickle);
+                return result;
 
-                //create command
-                var cmd = connection.CreateCommand();
-                //set command text
-                cmd.CommandText = sql;
+                //db.Open();
 
-                //create parameters
-                //how pass data from c# to tsql
-                cmd.Parameters.AddWithValue("NumberInStock", pickle.NumberInStock);
-                cmd.Parameters.AddWithValue("Price", pickle.Price);
-                cmd.Parameters.AddWithValue("Size", pickle.Size);
-                cmd.Parameters.AddWithValue("Type", pickle.Type);
+                ////create command
+                //var cmd = db.CreateCommand();
+                ////set command text
+                //cmd.CommandText = sql;
 
-                var reader = cmd.ExecuteReader();
+                ////create parameters
+                ////how pass data from c# to tsql
+                //cmd.Parameters.AddWithValue("NumberInStock", pickle.NumberInStock);
+                //cmd.Parameters.AddWithValue("Price", pickle.Price);
+                //cmd.Parameters.AddWithValue("Size", pickle.Size);
+                //cmd.Parameters.AddWithValue("Type", pickle.Type);
 
-                if (reader.Read())
-                {
-                    var newPickle = MapReaderToPickle(reader);
-                    return newPickle;
-                }
+                //var reader = cmd.ExecuteReader();
 
-                return null;
+                //if (reader.Read())
+                //{
+                //    var newPickle = MapReaderToPickle(reader);
+                //    return newPickle;
+                //}
+
+                //return null;
             }
         }
         public void Remove(string type)
@@ -67,24 +74,32 @@ namespace PickleAndHope.DataAccess
                         set NumberInStock = NumberInStock + @NewStock
                         where Id = @id";
 
-            using (var connection = new SqlConnection(ConnectionString))
+            using (var db = new SqlConnection(ConnectionString))
             {
-                connection.Open();
+                var parameters = new 
+                { 
+                    NewStock = pickle.NumberInStock, 
+                    Id = pickle.Id 
+                };
 
-                var cmd = connection.CreateCommand();
-                cmd.CommandText = sql;
+                return db.QueryFirstOrDefault<Pickle>(sql, parameters);
+                
+                //connection.Open();
 
-                cmd.Parameters.AddWithValue("NewStock", pickle.NumberInStock);
-                cmd.Parameters.AddWithValue("id", pickle.Id);
+                //var cmd = connection.CreateCommand();
+                //cmd.CommandText = sql;
 
-                var reader = cmd.ExecuteReader();
-                if (reader.Read())
-                {
-                    var updatedPickle = MapReaderToPickle(reader);
-                    return updatedPickle;
-                }
+                //cmd.Parameters.AddWithValue("NewStock", pickle.NumberInStock);
+                //cmd.Parameters.AddWithValue("id", pickle.Id);
 
-                return null;
+                //var reader = cmd.ExecuteReader();
+                //if (reader.Read())
+                //{
+                //    var updatedPickle = MapReaderToPickle(reader);
+                //    return updatedPickle;
+                //}
+
+                //return null;
             }
         }
         public Pickle GetByType(string type)
@@ -92,134 +107,130 @@ namespace PickleAndHope.DataAccess
             // firstordefault returns null
             //return _pickles.FirstOrDefault(p => p.Type == type);
 
+            //declare variable beforehand to avoid sql injection
+            var query = @"select *
+                        from Pickle
+                        where Type = @type";
+
             //sql connection
             //using statement allows connection to be ended once reach end curly brace by disposing that connection
-            using (var connection = new SqlConnection(ConnectionString))
-            {            
-                connection.Open();
+            using (var db = new SqlConnection(ConnectionString))
+            {
+                var parameters = new { Type = type };
+                var pickle = db.QueryFirstOrDefault<Pickle>(query, parameters);
+                return pickle;
+                
+                //connection.Open();
 
-                //declare variable beforehand to avoid sql injection
-                var query = @"select *
-                            from Pickle
-                            where Type = @type";
+                ////sql command
+                //var cmd = connection.CreateCommand();
+                //cmd.CommandText = query;
+                ////similar to declare statement in Sql
+                ////Type from query have to match the first Type from Paramters
+                ////Parameters.AddWithValue prevents sql injection
+                //cmd.Parameters.AddWithValue("Type", type);
 
-                //sql command
-                var cmd = connection.CreateCommand();
-                cmd.CommandText = query;
-                //similar to declare statement in Sql
-                //Type from query have to match the first Type from Paramters
-                //Parameters.AddWithValue prevents sql injection
-                cmd.Parameters.AddWithValue("Type", type);
+                ////execute the command
+                //var reader = cmd.ExecuteReader();
 
-                //execute the command
-                var reader = cmd.ExecuteReader();
+                ////if there is 1 result, return the following and map it to something c# will understand
+                ////equivalen to firstordefault
+                //if (reader.Read())
+                //{
+                //    return MapReaderToPickle(reader);
+                //}
 
-                //if there is 1 result, return the following and map it to something c# will understand
-                //equivalen to firstordefault
-                if (reader.Read())
-                {
-                    //var pickle = new Pickle
-                    //{
-                    //    Id = (int)reader["Id"],
-                    //    Type = (string)reader["Type"],
-                    //    Price = (decimal)reader["Price"],
-                    //    NumberInStock = (int)reader["NumberInStock"],
-                    //    Size = (string)reader["Size"]
-                    //};
-
-                    //return pickle;
-                    return MapReaderToPickle(reader);
-                }
-
-                return null;
+                //return null;
             }
         }
         public List<Pickle> GetAll()
         {
-            //return _pickles;           
-
-            //connection string
-            // how to connect to database
-            //var connectionString = "Server=localhost;Database=PickleAndHope;Trusted_Connection=True;";
-
-            //sql connection - need to tell to open up in the beginning and close it at the end
-            //actual connection
-            var connection = new SqlConnection(ConnectionString);
-            connection.Open();
-
-            //sql command
-            //createCommand goes down SqlConnection from connection
-            //tell sql what to do on how to connect
-            var cmd = connection.CreateCommand();
-
-            //query to run against connection to run against connectionString
-            cmd.CommandText = "select * from pickle";
-
-            //sql data reader
-            //run query and give results back
-            //executing sql syntax from line 56
-            var reader = cmd.ExecuteReader();
-
-            var pickles = new List<Pickle>();
-
-            //Read returns boolean and will keep reading until there are no more rows, which will return false
-            //the current row that it reads, it becomes avilable in the reader            
-            while (reader.Read())
+            using (var db = new SqlConnection(ConnectionString))
             {
-                //casting - take one value and saying it's a different kind of value
-                //var id = (int)reader["Id"];
-                //var type = (string)reader["Type"];
-
-
-                //taking sql query and map to c# object
-                //var pickle = new Pickle
-                //{
-                //    Id = (int) reader["Id"],
-                //    Type = (string) reader["Type"],
-                //    Price = (decimal) reader["Price"],
-                //    NumberInStock = (int) reader["NumberInStock"],
-                //    Size = (string) reader["Size"]
-                //};
-                var pickle = MapReaderToPickle(reader);
-                pickles.Add(pickle);
+                //give all Pickle from query
+                return db.Query<Pickle>("select * from pickle").ToList();
             }
 
-            connection.Close();
+            ////return _pickles;           
 
-            return pickles;
+            ////connection string
+            //// how to connect to database
+            ////var connectionString = "Server=localhost;Database=PickleAndHope;Trusted_Connection=True;";
+
+            ////sql connection - need to tell to open up in the beginning and close it at the end
+            ////actual connection
+            //var connection = new SqlConnection(ConnectionString);
+            //connection.Open();
+
+            ////sql command
+            ////createCommand goes down SqlConnection from connection
+            ////tell sql what to do on how to connect
+            //var cmd = connection.CreateCommand();
+
+            ////query to run against connection to run against connectionString
+            //cmd.CommandText = "select * from pickle";
+
+            ////sql data reader
+            ////run query and give results back
+            ////executing sql syntax from line commandText
+            //var reader = cmd.ExecuteReader();
+
+            //var pickles = new List<Pickle>();
+
+            ////Read returns boolean and will keep reading until there are no more rows, which will return false
+            ////the current row that it reads, it becomes avilable in the reader            
+            //while (reader.Read())
+            //{
+            //    //casting - take one value and saying it's a different kind of value
+            //    //var id = (int)reader["Id"];
+            //    //var type = (string)reader["Type"];
+
+            //    var pickle = MapReaderToPickle(reader);
+            //    pickles.Add(pickle);
+            //}
+
+            //connection.Close();
+
+            //return pickles;
         }
         public Pickle GetById(int id)
         {
             // return the first pickle.Id that matches id
             //return _pickles.FirstOrDefault(pickle => pickle.Id == id);
 
-            using (var connection = new SqlConnection(ConnectionString))
+            var query = @"select *
+                        from Pickle
+                        where Type = @id";
+
+            using (var db = new SqlConnection(ConnectionString))
             {
-                connection.Open();
+                //dapper only map parameter names to properties of real class to match what is in query in where clause
+                //new creates anonymous type of Id class with property name of id. Only exists here at this line
+                var pickle = db.QueryFirstOrDefault<Pickle>(query, new { Id = id});
+                return pickle;
+                //connection.Open();
 
-                var cmd = connection.CreateCommand();
+                //var cmd = connection.CreateCommand();
 
-                //set command up with query necessary
-                var query = @"select *
-                            from Pickle
-                            where Type = @id";
+                ////set command up with query necessary
 
-                cmd.CommandText = query;
-                cmd.Parameters.AddWithValue("id", id);
+                //cmd.CommandText = query;
+                //cmd.Parameters.AddWithValue("id", id);
 
-                var reader = cmd.ExecuteReader();
+                //var reader = cmd.ExecuteReader();
 
-                //map results to object c# will understand
-                if (reader.Read())
-                {
-                    return MapReaderToPickle(reader);
-                }
-                return null;
+                ////map results to object c# will understand
+                //if (reader.Read())
+                //{
+                //    return MapReaderToPickle(reader);
+                //}
+                //return null;
             }
         }
 
         Pickle MapReaderToPickle(SqlDataReader reader)
         {
+            //taking sql query and map to c# object
             var pickle = new Pickle
             {
                 Id = (int)reader["Id"],
