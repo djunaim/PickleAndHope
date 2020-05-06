@@ -27,9 +27,9 @@ namespace PickleAndHope.Controllers
             // does pickle exists, if not, create it
             if (existingPickle == null)
             {
-                _repository.Add(pickleToAdd);
+                var newPickle = _repository.Add(pickleToAdd);
                 // will give 201 http response
-                return Created("", pickleToAdd);
+                return Created("", newPickle);
             }
             else // if pickle already exists, just update it
             {
