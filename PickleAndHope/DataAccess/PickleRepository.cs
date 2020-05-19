@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Data.SqlClient;
 using Dapper;
+using Microsoft.Extensions.Configuration;
 
 namespace PickleAndHope.DataAccess
 {
@@ -14,7 +15,13 @@ namespace PickleAndHope.DataAccess
         // static means field should be shared by every instance of pickles controller for long erm data storage
         //static List<Pickle> _pickles = new List<Pickle>() { new Pickle {Id = 1, Type = "Bread and Butter", NumberInStock = 5 } };
 
-        const string ConnectionString = "Server=localhost;Database=PickleAndHope;Trusted_Connection=True;";       
+        //get connectionstring of pickleandhope from this application
+        string ConnectionString;
+
+        public PickleRepository(IConfiguration config)
+        {
+            ConnectionString = config.GetConnectionString("PickleAndHope");
+        }
         public Pickle Add(Pickle pickle)
         {
             //pickle.Id = _pickles.Max(x => x.Id) + 1;
