@@ -14,7 +14,14 @@ namespace PickleAndHope.Controllers
     public class PicklesController : ControllerBase // class is controller
     {
 
-        PickleRepository _repository = new PickleRepository();
+        PickleRepository _repository;
+
+        //dependency injection
+        //picklescontroller create picklesrepository called repository
+        public PicklesController(PickleRepository repository)
+        {
+            _repository = repository;
+        }
 
         // api/pickles
         [HttpPost]
