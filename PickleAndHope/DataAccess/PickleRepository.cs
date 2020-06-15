@@ -207,7 +207,7 @@ namespace PickleAndHope.DataAccess
 
             var query = @"select *
                         from Pickle
-                        where Type = @id";
+                        where Id = @id";
 
             using (var db = new SqlConnection(ConnectionString))
             {
