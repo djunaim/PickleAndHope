@@ -28,6 +28,14 @@ namespace PickleAndHope
         {
             services.AddControllers();
 
+            //cors policy
+            //set of rules of certain circumstances
+            //allow option to setup policy
+            services.AddCors(options =>
+                options.AddPolicy("ItsAllGood",
+                    builder => builder.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin())
+                );
+
             //service registration - tell asp.net core this thing that does particular job
             //container - holds registration
             //all 3 below are defining lifecyles of class
@@ -57,6 +65,8 @@ namespace PickleAndHope
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            app.UseCors("ItsAllGood");
 
             app.UseAuthorization();
 
